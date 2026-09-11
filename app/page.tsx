@@ -1,3 +1,4 @@
+import { GuestUpgradeCard } from "@/components/auth/GuestUpgradeCard";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { GlowBorder } from "@/components/motion/GlowBorder";
@@ -108,6 +109,10 @@ export default function Home() {
               ))}
             </ol>
           </GlowBorder>
+        </Reveal>
+
+        <Reveal delay={0.25} className="flex w-full justify-center">
+          <GuestUpgradeCard />
         </Reveal>
       </main>
     </div>
