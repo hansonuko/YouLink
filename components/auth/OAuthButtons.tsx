@@ -68,7 +68,7 @@ export function OAuthButtons({ mode, className }: OAuthButtonsProps) {
 
   return (
     <div className={className}>
-      <div className="flex flex-col gap-2 sm:flex-row">
+      <div className="flex flex-col gap-2">
         {PROVIDERS.map((provider) => (
           <Button
             key={provider.id}
@@ -76,7 +76,7 @@ export function OAuthButtons({ mode, className }: OAuthButtonsProps) {
             variant="secondary"
             disabled={pending !== null}
             onClick={() => handleClick(provider.id)}
-            className={cn("flex-1", pending === provider.id && "opacity-70")}
+            className={cn("w-full", pending === provider.id && "opacity-70")}
           >
             {provider.icon}
             {pending === provider.id ? "Redirecting…" : provider.label}
