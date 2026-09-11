@@ -1,0 +1,124 @@
+@import "tailwindcss";
+@plugin "tailwindcss-animate";
+
+/* ────────────────────────────────────────────────────────────
+   YouLink Design Tokens — see DESIGN_SYSTEM.md for the spec.
+   Dark is the default theme; [data-theme="light"] overrides it.
+   ──────────────────────────────────────────────────────────── */
+
+:root {
+  /* Signature Aurora token */
+  --aurora: linear-gradient(135deg, #7c5cff 0%, #00d8c0 50%, #ff5c8a 100%);
+  --aurora-soft: linear-gradient(
+    135deg,
+    rgb(124 92 255 / 0.08) 0%,
+    rgb(0 216 192 / 0.08) 50%,
+    rgb(255 92 138 / 0.08) 100%
+  );
+
+  /* Core palette */
+  --color-violet-500: #7c5cff;
+  --color-violet-600: #6a46f0;
+  --color-teal-400: #00d8c0;
+  --color-coral-400: #ff5c8a;
+  --color-amber-400: #ffb020;
+  --color-red-500: #ff4d4f;
+
+  /* Glass / glow primitives */
+  --glass-border: rgb(255 255 255 / 0.08);
+  --glass-blur: 16px;
+  --glow-violet: 0 0 24px 0 rgb(124 92 255 / 0.45);
+  --glow-coral: 0 0 24px 0 rgb(255 92 138 / 0.45);
+
+  /* Radius */
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+
+  color-scheme: dark;
+  /* Neutrals — dark (default) */
+  --bg-canvas: #0a0a12;
+  --bg-surface: #13131f;
+  --bg-surface-raised: #1b1b2b;
+  --glass-bg: rgb(19 19 31 / 0.6);
+  --border-subtle: #26263a;
+  --text-primary: #f4f4fa;
+  --text-secondary: #a2a2bd;
+  --text-tertiary: #6b6b85;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg-canvas: #fafafe;
+  --bg-surface: #ffffff;
+  --bg-surface-raised: #ffffff;
+  --glass-bg: rgb(255 255 255 / 0.6);
+  --border-subtle: #e7e7f1;
+  --text-primary: #14141f;
+  --text-secondary: #5b5b75;
+  --text-tertiary: #9494ac;
+}
+
+@theme inline {
+  --color-canvas: var(--bg-canvas);
+  --color-surface: var(--bg-surface);
+  --color-surface-raised: var(--bg-surface-raised);
+  --color-border-subtle: var(--border-subtle);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+
+  --color-violet-500: var(--color-violet-500);
+  --color-violet-600: var(--color-violet-600);
+  --color-teal-400: var(--color-teal-400);
+  --color-coral-400: var(--color-coral-400);
+  --color-amber-400: var(--color-amber-400);
+  --color-red-500: var(--color-red-500);
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+
+  --font-display: var(--font-space-grotesk);
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains-mono);
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+    --bg-canvas: #fafafe;
+    --bg-surface: #ffffff;
+    --bg-surface-raised: #ffffff;
+    --glass-bg: rgb(255 255 255 / 0.6);
+    --border-subtle: #e7e7f1;
+    --text-primary: #14141f;
+    --text-secondary: #5b5b75;
+    --text-tertiary: #9494ac;
+  }
+}
+
+body {
+  background: var(--bg-canvas);
+  color: var(--text-primary);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+::selection {
+  background: rgb(124 92 255 / 0.35);
+  color: var(--text-primary);
+}
+
+/* Respect reduced motion globally as a last line of defense; motion
+   primitives in components/motion also branch on this explicitly so
+   JS-driven animation (Framer Motion) is skipped, not just CSS. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

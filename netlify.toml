@@ -1,0 +1,24 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# Deploy Previews build against preview-only env vars (e.g. a Supabase branch DB).
+# Set the actual values in the Netlify UI: Site settings → Environment variables,
+# scoped per-context, or override here per context as needed.
+[context.production.environment]
+  NEXT_PUBLIC_SITE_URL = "https://youlink.yourdomain.com"
+
+[context.deploy-preview.environment]
+  NEXT_PUBLIC_SITE_URL = "$DEPLOY_PRIME_URL"
+
+[context.branch-deploy.environment]
+  NEXT_PUBLIC_SITE_URL = "$DEPLOY_PRIME_URL"
+
+# Long-cache immutable Next.js build assets; HTML/data stays revalidated by the plugin.
+[[headers]]
+  for = "/_next/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
