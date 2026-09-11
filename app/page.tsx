@@ -3,18 +3,22 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { GlowBorder } from "@/components/motion/GlowBorder";
 import { Reveal } from "@/components/motion/Reveal";
+import { ProfileHeader } from "@/components/profile/ProfileHeader";
+import { getOwnerProfile } from "@/lib/data/profile";
 
 const phases = [
   { label: "Scaffold", status: "done" },
-  { label: "Identity & Data", status: "next" },
-  { label: "Profile & Feed", status: "planned" },
+  { label: "Identity & Data", status: "done" },
+  { label: "Profile & Feed", status: "next" },
   { label: "Social Actions", status: "planned" },
   { label: "Chat", status: "planned" },
   { label: "Motion Polish", status: "planned" },
   { label: "Launch", status: "planned" },
 ] as const;
 
-export default function Home() {
+export default async function Home() {
+  const profile = await getOwnerProfile();
+
   return (
     <div className="relative flex min-h-screen flex-col overflow-hidden">
       {/* Ambient Aurora glow, static here — becomes a slow drift animation in Phase 5 */}
@@ -35,12 +39,18 @@ export default function Home() {
       </header>
 
       <main className="relative z-10 flex flex-1 flex-col items-center justify-center gap-10 px-6 pb-24 text-center sm:px-10">
+        {profile && (
+          <div className="w-full max-w-2xl text-left">
+            <ProfileHeader profile={profile} />
+          </div>
+        )}
+
         <Reveal>
           <p
             className="font-mono text-xs font-medium uppercase tracking-[0.2em]"
             style={{ color: "var(--text-tertiary)" }}
           >
-            Phase 0 · Scaffold
+            Phase 2 · Profile &amp; Feed
           </p>
         </Reveal>
 
