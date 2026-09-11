@@ -24,6 +24,12 @@ export interface WorksPage {
   nextCursor: string | null;
 }
 
+export interface WorkDetail extends WorkSummary {
+  bodyMd: string | null;
+  externalUrl: string | null;
+  status: "draft" | "published" | "archived";
+}
+
 export const FEED_PAGE_SIZE = 6;
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -98,4 +104,43 @@ export async function getPublishedWorksPage(
   const nextCursor = hasMore && last?.published_at ? encodeCursor(last.published_at, last.id) : null;
 
   return { works, nextCursor };
+}
+
+/**
+ * A single work by slug, for the detail page. RLS (works' own "published
+ * works are publicly readable" policy from the Phase 1 migration) is what
+ * actually enforces visibility here — an anonymous visitor gets null for a
+ * draft slug, the owner gets the real row. This function doesn't re-check
+ * status itself, it just surfaces whatever RLS already decided.
+ */
+export async function getWorkBySlug(slug: string): Promise<WorkDetail | null> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("works")
+    .select(
+      "id, title, slug, summary, body_md, media, external_url, status, like_count, share_count, published_at",
+    )
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[works] failed to load work by slug:", error.message);
+    return null;
+  }
+  if (!data) return null;
+
+  return {
+    id: data.id,
+    title: data.title,
+    slug: data.slug,
+    summary: data.summary,
+    bodyMd: data.body_md,
+    externalUrl: data.external_url,
+    status: data.status,
+    media: Array.isArray(data.media) ? (data.media as WorkMedia[]) : [],
+    likeCount: data.like_count,
+    shareCount: data.share_count,
+    publishedAt: data.published_at,
+  };
 }
