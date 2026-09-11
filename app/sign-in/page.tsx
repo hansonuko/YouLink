@@ -8,14 +8,22 @@ import { signInWithMagicLink } from "@/lib/actions/auth";
 
 export const metadata: Metadata = { title: "Sign in" };
 
+interface SignInPageProps {
+  searchParams: Promise<{ next?: string }>;
+}
+
 /**
  * Returning-member sign-in (BUILD_PHASES.md Phase 1). Every visitor already
  * has an anonymous guest session (see proxy.ts) — this page is for
  * authenticating into an *existing* member account, not converting the
  * current guest in place (that's the "save my activity" upgrade prompt,
- * see components/auth/GuestUpgradeCard.tsx).
+ * see components/auth/GuestUpgradeCard.tsx). `?next=` (set by, e.g., the
+ * dashboard's owner-only guard) carries the visitor back where they were
+ * headed once they confirm the magic link.
  */
-export default function SignInPage() {
+export default async function SignInPage({ searchParams }: SignInPageProps) {
+  const { next } = await searchParams;
+
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6 py-24">
       <div
@@ -40,6 +48,7 @@ export default function SignInPage() {
             action={signInWithMagicLink}
             submitLabel="Send link"
             className="mt-6"
+            next={next}
           />
 
           <div className="my-6 flex items-center gap-3">

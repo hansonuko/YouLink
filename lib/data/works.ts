@@ -30,6 +30,39 @@ export interface WorkDetail extends WorkSummary {
   status: "draft" | "published" | "archived";
 }
 
+const WORK_DETAIL_COLUMNS =
+  "id, title, slug, summary, body_md, media, external_url, status, like_count, share_count, published_at";
+
+interface WorkDetailRow {
+  id: string;
+  title: string;
+  slug: string;
+  summary: string | null;
+  body_md: string | null;
+  media: unknown;
+  external_url: string | null;
+  status: "draft" | "published" | "archived";
+  like_count: number;
+  share_count: number;
+  published_at: string | null;
+}
+
+function mapWorkDetailRow(data: WorkDetailRow): WorkDetail {
+  return {
+    id: data.id,
+    title: data.title,
+    slug: data.slug,
+    summary: data.summary,
+    bodyMd: data.body_md,
+    externalUrl: data.external_url,
+    status: data.status,
+    media: Array.isArray(data.media) ? (data.media as WorkMedia[]) : [],
+    likeCount: data.like_count,
+    shareCount: data.share_count,
+    publishedAt: data.published_at,
+  };
+}
+
 export const FEED_PAGE_SIZE = 6;
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -118,9 +151,7 @@ export async function getWorkBySlug(slug: string): Promise<WorkDetail | null> {
 
   const { data, error } = await supabase
     .from("works")
-    .select(
-      "id, title, slug, summary, body_md, media, external_url, status, like_count, share_count, published_at",
-    )
+    .select(WORK_DETAIL_COLUMNS)
     .eq("slug", slug)
     .maybeSingle();
 
@@ -130,17 +161,63 @@ export async function getWorkBySlug(slug: string): Promise<WorkDetail | null> {
   }
   if (!data) return null;
 
-  return {
-    id: data.id,
-    title: data.title,
-    slug: data.slug,
-    summary: data.summary,
-    bodyMd: data.body_md,
-    externalUrl: data.external_url,
-    status: data.status,
-    media: Array.isArray(data.media) ? (data.media as WorkMedia[]) : [],
-    likeCount: data.like_count,
-    shareCount: data.share_count,
-    publishedAt: data.published_at,
-  };
+  return mapWorkDetailRow(data);
+}
+
+/** For the dashboard edit page — editing keys off id, not slug (slug can change). */
+export async function getWorkById(id: string): Promise<WorkDetail | null> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("works")
+    .select(WORK_DETAIL_COLUMNS)
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[works] failed to load work by id:", error.message);
+    return null;
+  }
+  if (!data) return null;
+
+  return mapWorkDetailRow(data);
+}
+
+export interface OwnerWorkListItem {
+  id: string;
+  title: string;
+  slug: string;
+  status: "draft" | "published" | "archived";
+  createdAt: string;
+  publishedAt: string | null;
+}
+
+/**
+ * Every work the owner has, any status — the dashboard list. RLS's
+ * "published works are publicly readable" policy also grants the owner
+ * `auth.uid() = owner_id` visibility into their own drafts/archived works,
+ * so no extra filter is needed here beyond calling this with the owner's
+ * own session (enforced by the dashboard layout, not by this function).
+ */
+export async function getOwnerWorks(): Promise<OwnerWorkListItem[]> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("works")
+    .select("id, title, slug, status, created_at, published_at")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("[works] failed to load owner works list:", error.message);
+    return [];
+  }
+
+  return data.map((w) => ({
+    id: w.id,
+    title: w.title,
+    slug: w.slug,
+    status: w.status,
+    createdAt: w.created_at,
+    publishedAt: w.published_at,
+  }));
 }
