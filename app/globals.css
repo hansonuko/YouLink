@@ -109,6 +109,29 @@ body {
   color: var(--text-primary);
 }
 
+/* Aurora shimmer sweep for skeleton loading states — DESIGN_SYSTEM.md §5.3
+   ("never a bare spinner on the feed"). Neutralized by the
+   prefers-reduced-motion rule below like every other CSS animation. */
+@keyframes shimmer {
+  from {
+    background-position: -200% 0;
+  }
+  to {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  background-image: linear-gradient(
+    100deg,
+    var(--border-subtle) 30%,
+    rgb(124 92 255 / 0.18) 50%,
+    var(--border-subtle) 70%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+}
+
 /* Respect reduced motion globally as a last line of defense; motion
    primitives in components/motion also branch on this explicitly so
    JS-driven animation (Framer Motion) is skipped, not just CSS. */
