@@ -13,6 +13,9 @@ interface EmailAuthFormProps {
   submitLabel: string;
   placeholder?: string;
   className?: string;
+  /** Carried through to the action as a hidden field — e.g. "next" so
+   * signInWithMagicLink can send the visitor back where they came from. */
+  next?: string;
 }
 
 function SubmitButton({ label }: { label: string }) {
@@ -36,11 +39,13 @@ export function EmailAuthForm({
   submitLabel,
   placeholder = "you@example.com",
   className,
+  next,
 }: EmailAuthFormProps) {
   const [state, formAction] = useActionState(action, initialState);
 
   return (
     <form action={formAction} className={cn("flex flex-col gap-3", className)}>
+      {next && <input type="hidden" name="next" value={next} />}
       <div className="flex flex-col gap-2 sm:flex-row">
         <Input type="email" name="email" required placeholder={placeholder} className="flex-1" />
         <SubmitButton label={submitLabel} />

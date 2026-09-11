@@ -15,6 +15,16 @@ function siteUrl() {
   return process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 }
 
+/** Only a same-site relative path is safe to bounce back to after auth —
+ * anything else (a full URL, protocol-relative "//evil.com") is an
+ * open-redirect vector and gets dropped. */
+function safeNextPath(next: FormDataEntryValue | null): string | null {
+  if (typeof next !== "string" || !next.startsWith("/") || next.startsWith("//")) {
+    return null;
+  }
+  return next;
+}
+
 /** Identity id when there's a session (guest or member), else a best-effort IP. */
 async function rateLimitIdentifier() {
   const supabase = await createClient();
@@ -47,10 +57,15 @@ export async function signInWithMagicLink(
     return { status: "error", message: "Too many attempts — try again in a few minutes." };
   }
 
+  const next = safeNextPath(formData.get("next"));
+  const callbackUrl = next
+    ? `${siteUrl()}/auth/callback?next=${encodeURIComponent(next)}`
+    : `${siteUrl()}/auth/callback`;
+
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithOtp({
     email: parsed.data.email,
-    options: { emailRedirectTo: `${siteUrl()}/auth/callback` },
+    options: { emailRedirectTo: callbackUrl },
   });
 
   if (error) {
