@@ -46,3 +46,13 @@ Guests are real Supabase anonymous-auth users (`lib/guest/`), not localStorage f
 - Don't add a second UI library alongside shadcn/ui "just for one component."
 - Don't introduce a friend-graph / multi-user feed model — this is intentionally single-owner (§1 of `BLUEPRINT.md`). If asked to genuinely multi-tenant it, treat that as a scoped migration, not a quick patch.
 - Don't ship a like/follow/share/chat feature without its guest-facing path — every social action must work for a non-signed-up visitor per the product frame.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->
