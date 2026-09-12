@@ -1,5 +1,6 @@
 "use server";
 
+import { requireGuestWriteVerified } from "@/lib/actions/turnstile";
 import { getOwnerProfile } from "@/lib/data/profile";
 import { createRateLimiter } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
@@ -44,6 +45,11 @@ export async function toggleFollow(): Promise<ToggleFollowResult> {
   const { success } = await followRateLimiter.limit(`user:${user.id}`);
   if (!success) {
     return { following: false, followerCount: 0, error: "Slow down a moment." };
+  }
+
+  const verified = await requireGuestWriteVerified(supabase, user.id);
+  if (!verified.ok) {
+    return { following: false, followerCount: 0, error: verified.error };
   }
 
   const { data: existing } = await supabase

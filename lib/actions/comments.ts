@@ -1,5 +1,6 @@
 "use server";
 
+import { requireGuestWriteVerified } from "@/lib/actions/turnstile";
 import type { Comment } from "@/lib/data/comments";
 import { createRateLimiter } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
@@ -44,6 +45,11 @@ export async function createComment(workId: string, body: string): Promise<Creat
   const { success } = await commentRateLimiter.limit(`user:${user.id}`);
   if (!success) {
     return { comment: null, commentCount: 0, error: "Too many comments — slow down a moment." };
+  }
+
+  const verified = await requireGuestWriteVerified(supabase, user.id);
+  if (!verified.ok) {
+    return { comment: null, commentCount: 0, error: verified.error };
   }
 
   const { data, error } = await supabase
