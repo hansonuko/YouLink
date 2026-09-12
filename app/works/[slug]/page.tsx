@@ -5,10 +5,12 @@ import { notFound } from "next/navigation";
 import Markdown from "react-markdown";
 
 import { ThemeToggle } from "@/components/theme-toggle";
+import { CommentList } from "@/components/works/CommentList";
 import { LikeButton } from "@/components/works/LikeButton";
 import { MediaLightbox } from "@/components/works/MediaLightbox";
 import { ShareSheet } from "@/components/works/ShareSheet";
 import { markdownComponents } from "@/components/works/markdown-components";
+import { getCommentsForWork } from "@/lib/data/comments";
 import { getWorkBySlug } from "@/lib/data/works";
 import { formatRelativeTime } from "@/lib/utils";
 
@@ -38,6 +40,8 @@ export default async function WorkPage({ params }: WorkPageParams) {
   if (!work || work.status !== "published") {
     notFound();
   }
+
+  const { comments, viewerIdentityId, isOwner } = await getCommentsForWork(work.id);
 
   return (
     <div className="relative flex min-h-screen flex-col">
@@ -81,6 +85,15 @@ export default async function WorkPage({ params }: WorkPageParams) {
             <Markdown components={markdownComponents}>{work.bodyMd}</Markdown>
           </div>
         )}
+
+        <div className="mt-12 border-t pt-8" style={{ borderColor: "var(--border-subtle)" }}>
+          <CommentList
+            workId={work.id}
+            initialComments={comments}
+            viewerIdentityId={viewerIdentityId}
+            isOwner={isOwner}
+          />
+        </div>
       </main>
     </div>
   );
