@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import { Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google";
 import type { ReactNode } from "react";
 
+import { ChatLauncher } from "@/components/chat/ChatLauncher";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TurnstileGate } from "@/components/TurnstileGate";
+import { getOwnerProfile } from "@/lib/data/profile";
 
 import "./globals.css";
 
@@ -34,7 +36,9 @@ export const metadata: Metadata = {
     "A lite, motion-first personal social network for showcasing a portfolio — follow, like, share, and chat, no account required.",
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const owner = await getOwnerProfile();
+
   return (
     <html
       lang="en"
@@ -44,6 +48,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body className="flex min-h-full flex-col">
         <ThemeProvider>{children}</ThemeProvider>
         <TurnstileGate />
+        {/* Chatting with yourself is meaningless (same reasoning as
+            FollowButton hiding on the owner's own profile view) — only
+            mount the launcher for a visitor who isn't the owner, and only
+            once there's actually an owner profile to chat with. */}
+        {owner && !owner.isViewer && <ChatLauncher ownerDisplayName={owner.displayName} />}
       </body>
     </html>
   );
