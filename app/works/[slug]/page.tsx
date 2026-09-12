@@ -1,4 +1,4 @@
-import { ArrowLeft, Share2 } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -7,6 +7,7 @@ import Markdown from "react-markdown";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LikeButton } from "@/components/works/LikeButton";
 import { MediaLightbox } from "@/components/works/MediaLightbox";
+import { ShareSheet } from "@/components/works/ShareSheet";
 import { markdownComponents } from "@/components/works/markdown-components";
 import { getWorkBySlug } from "@/lib/data/works";
 import { formatRelativeTime } from "@/lib/utils";
@@ -66,10 +67,7 @@ export default async function WorkPage({ params }: WorkPageParams) {
         >
           {work.publishedAt && <span>{formatRelativeTime(work.publishedAt)}</span>}
           <LikeButton workId={work.id} initialLiked={work.liked} initialCount={work.likeCount} />
-          <span className="flex items-center gap-1">
-            <Share2 className="size-4" aria-hidden />
-            {work.shareCount}
-          </span>
+          <ShareSheet workId={work.id} slug={work.slug} title={work.title} initialCount={work.shareCount} />
         </div>
 
         {work.media.length > 0 && (
