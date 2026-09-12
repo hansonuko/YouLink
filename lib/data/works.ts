@@ -1,3 +1,5 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+
 import { createClient } from "@/lib/supabase/server";
 
 export interface WorkMedia {
@@ -17,6 +19,34 @@ export interface WorkSummary {
   likeCount: number;
   shareCount: number;
   publishedAt: string | null;
+  /** Has the *current viewer* liked this work — batched, not N+1. */
+  liked: boolean;
+}
+
+/** One query for a whole page of works instead of one per card. */
+async function getLikedWorkIdSet(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the generated Database type isn't wired up yet (no `supabase gen types` on this platform, see BUILD_PHASES.md)
+  supabase: SupabaseClient<any>,
+  workIds: string[],
+): Promise<Set<string>> {
+  if (workIds.length === 0) return new Set();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return new Set();
+
+  const { data, error } = await supabase
+    .from("likes")
+    .select("work_id")
+    .eq("identity_id", user.id)
+    .in("work_id", workIds);
+
+  if (error) {
+    console.error("[works] failed to load liked work ids:", error.message);
+    return new Set();
+  }
+  return new Set(data.map((row: { work_id: string }) => row.work_id));
 }
 
 export interface WorksPage {
@@ -47,7 +77,7 @@ interface WorkDetailRow {
   published_at: string | null;
 }
 
-function mapWorkDetailRow(data: WorkDetailRow): WorkDetail {
+function mapWorkDetailRow(data: WorkDetailRow, liked: boolean): WorkDetail {
   return {
     id: data.id,
     title: data.title,
@@ -60,6 +90,7 @@ function mapWorkDetailRow(data: WorkDetailRow): WorkDetail {
     likeCount: data.like_count,
     shareCount: data.share_count,
     publishedAt: data.published_at,
+    liked,
   };
 }
 
@@ -122,6 +153,8 @@ export async function getPublishedWorksPage(
   const hasMore = data.length > limit;
   const page = hasMore ? data.slice(0, limit) : data;
 
+  const likedIds = await getLikedWorkIdSet(supabase, page.map((w) => w.id));
+
   const works: WorkSummary[] = page.map((w) => ({
     id: w.id,
     title: w.title,
@@ -131,6 +164,7 @@ export async function getPublishedWorksPage(
     likeCount: w.like_count,
     shareCount: w.share_count,
     publishedAt: w.published_at,
+    liked: likedIds.has(w.id),
   }));
 
   const last = page.at(-1);
@@ -161,7 +195,8 @@ export async function getWorkBySlug(slug: string): Promise<WorkDetail | null> {
   }
   if (!data) return null;
 
-  return mapWorkDetailRow(data);
+  const likedIds = await getLikedWorkIdSet(supabase, [data.id]);
+  return mapWorkDetailRow(data, likedIds.has(data.id));
 }
 
 /** For the dashboard edit page — editing keys off id, not slug (slug can change). */
@@ -180,7 +215,8 @@ export async function getWorkById(id: string): Promise<WorkDetail | null> {
   }
   if (!data) return null;
 
-  return mapWorkDetailRow(data);
+  const likedIds = await getLikedWorkIdSet(supabase, [data.id]);
+  return mapWorkDetailRow(data, likedIds.has(data.id));
 }
 
 export interface OwnerWorkListItem {

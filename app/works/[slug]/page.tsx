@@ -1,10 +1,11 @@
-import { ArrowLeft, Heart, Share2 } from "lucide-react";
+import { ArrowLeft, Share2 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import Markdown from "react-markdown";
 
 import { ThemeToggle } from "@/components/theme-toggle";
+import { LikeButton } from "@/components/works/LikeButton";
 import { MediaLightbox } from "@/components/works/MediaLightbox";
 import { markdownComponents } from "@/components/works/markdown-components";
 import { getWorkBySlug } from "@/lib/data/works";
@@ -64,10 +65,7 @@ export default async function WorkPage({ params }: WorkPageParams) {
           style={{ color: "var(--text-tertiary)" }}
         >
           {work.publishedAt && <span>{formatRelativeTime(work.publishedAt)}</span>}
-          <span className="flex items-center gap-1">
-            <Heart className="size-4" aria-hidden />
-            {work.likeCount}
-          </span>
+          <LikeButton workId={work.id} initialLiked={work.liked} initialCount={work.likeCount} />
           <span className="flex items-center gap-1">
             <Share2 className="size-4" aria-hidden />
             {work.shareCount}
