@@ -2,6 +2,12 @@
 
 Last updated: 2026-09-12, after Phase 4 (Chat) merged in full.
 
+> **This file's own PR is currently open and unmerged:**
+> [#20](https://github.com/hansonuko/YouLink/pull/20). If you're reading
+> this from `main`, it landed; if you're reading it from the
+> `docs/session-handoff` branch or the PR diff, it hasn't yet — check
+> `gh pr view 20` before assuming anything below reflects `main`.
+
 This file is the "pick up where we left off" doc — current status, what's
 live, what's provisioned, patterns worth knowing before touching this
 codebase, and what's next. `BLUEPRINT.md` / `DESIGN_SYSTEM.md` /
