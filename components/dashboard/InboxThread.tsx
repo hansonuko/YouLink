@@ -4,9 +4,11 @@ import { ArrowLeft, Ban, Send, ShieldOff } from "lucide-react";
 import { useEffect, useRef, useState, useTransition } from "react";
 
 import { MessageBubble } from "@/components/chat/MessageBubble";
+import { TypingIndicator } from "@/components/chat/TypingIndicator";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { fetchConversationMessages, markConversationRead, sendOwnerReply, setIdentityBlocked } from "@/lib/actions/chat";
+import { useTypingSignal } from "@/lib/chat/use-typing-signal";
 import type { ChatMessage, InboxConversation } from "@/lib/data/chat";
 import { createClient } from "@/lib/supabase/client";
 
@@ -32,6 +34,7 @@ export function InboxThread({ conversation, onBack, onBlockedChange, onRead }: I
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const listRef = useRef<HTMLDivElement>(null);
+  const { theirTyping: guestTyping, handleTypingBroadcast, registerChannel, notifyTyping } = useTypingSignal("owner");
 
   useEffect(() => {
     let cancelled = false;
@@ -57,13 +60,16 @@ export function InboxThread({ conversation, onBack, onBlockedChange, onRead }: I
         setMessages((prev) => upsertById(prev, payload.message as ChatMessage));
         void markConversationRead(conversation.id).then(() => onRead());
       })
+      .on("broadcast", { event: "typing" }, handleTypingBroadcast)
       .subscribe();
+    registerChannel(channel);
 
     return () => {
       supabase.removeChannel(channel);
+      registerChannel(null);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- same reasoning as above.
-  }, [conversation.id]);
+  }, [conversation.id, handleTypingBroadcast, registerChannel]);
 
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
@@ -158,10 +164,14 @@ export function InboxThread({ conversation, onBack, onBlockedChange, onRead }: I
             This visitor is blocked — you can still reply, but their own messages won&apos;t go through.
           </p>
         )}
+        {guestTyping && <TypingIndicator label={`${conversation.visitorDisplayName} is typing…`} />}
         <div className="flex items-end gap-2">
           <Textarea
             value={body}
-            onChange={(e) => setBody(e.target.value)}
+            onChange={(e) => {
+              setBody(e.target.value);
+              notifyTyping();
+            }}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
