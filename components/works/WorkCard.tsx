@@ -1,3 +1,4 @@
+import { MessageCircle } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -80,6 +81,10 @@ export function WorkCard({ work, view }: WorkCardProps) {
     >
       <LikeButton workId={work.id} initialLiked={work.liked} initialCount={work.likeCount} />
       <ShareSheet workId={work.id} slug={work.slug} title={work.title} initialCount={work.shareCount} />
+      <span className="inline-flex items-center gap-1.5">
+        <MessageCircle className="size-3.5" aria-hidden />
+        {work.commentCount}
+      </span>
       {work.publishedAt && <span>{formatRelativeTime(work.publishedAt)}</span>}
     </div>
   );

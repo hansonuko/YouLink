@@ -18,6 +18,7 @@ export interface WorkSummary {
   media: WorkMedia[];
   likeCount: number;
   shareCount: number;
+  commentCount: number;
   publishedAt: string | null;
   /** Has the *current viewer* liked this work — batched, not N+1. */
   liked: boolean;
@@ -61,7 +62,7 @@ export interface WorkDetail extends WorkSummary {
 }
 
 const WORK_DETAIL_COLUMNS =
-  "id, title, slug, summary, body_md, media, external_url, status, like_count, share_count, published_at";
+  "id, title, slug, summary, body_md, media, external_url, status, like_count, share_count, comment_count, published_at";
 
 interface WorkDetailRow {
   id: string;
@@ -74,6 +75,7 @@ interface WorkDetailRow {
   status: "draft" | "published" | "archived";
   like_count: number;
   share_count: number;
+  comment_count: number;
   published_at: string | null;
 }
 
@@ -89,6 +91,7 @@ function mapWorkDetailRow(data: WorkDetailRow, liked: boolean): WorkDetail {
     media: Array.isArray(data.media) ? (data.media as WorkMedia[]) : [],
     likeCount: data.like_count,
     shareCount: data.share_count,
+    commentCount: data.comment_count,
     publishedAt: data.published_at,
     liked,
   };
@@ -131,7 +134,7 @@ export async function getPublishedWorksPage(
 
   let query = supabase
     .from("works")
-    .select("id, title, slug, summary, media, like_count, share_count, published_at")
+    .select("id, title, slug, summary, media, like_count, share_count, comment_count, published_at")
     .eq("status", "published")
     .order("published_at", { ascending: false })
     .order("id", { ascending: false })
@@ -163,6 +166,7 @@ export async function getPublishedWorksPage(
     media: Array.isArray(w.media) ? (w.media as WorkMedia[]) : [],
     likeCount: w.like_count,
     shareCount: w.share_count,
+    commentCount: w.comment_count,
     publishedAt: w.published_at,
     liked: likedIds.has(w.id),
   }));
