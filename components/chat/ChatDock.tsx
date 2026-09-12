@@ -5,9 +5,11 @@ import { Send, X } from "lucide-react";
 import { useEffect, useRef, useState, useTransition } from "react";
 
 import { MessageBubble } from "@/components/chat/MessageBubble";
+import { TypingIndicator } from "@/components/chat/TypingIndicator";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { fetchMyConversation, markConversationRead, sendGuestMessage } from "@/lib/actions/chat";
+import { useTypingSignal } from "@/lib/chat/use-typing-signal";
 import type { ChatMessage } from "@/lib/data/chat";
 import { spring } from "@/lib/motion/tokens";
 import { useReducedMotion } from "@/lib/motion/use-reduced-motion";
@@ -49,6 +51,7 @@ export function ChatDock({ ownerDisplayName, onClose, onConversationKnown }: Cha
   const [isPending, startTransition] = useTransition();
   const reducedMotion = useReducedMotion();
   const listRef = useRef<HTMLDivElement>(null);
+  const { theirTyping: ownerTyping, handleTypingBroadcast, registerChannel, notifyTyping } = useTypingSignal("identity");
 
   useEffect(() => {
     let cancelled = false;
@@ -70,19 +73,25 @@ export function ChatDock({ ownerDisplayName, onClose, onConversationKnown }: Cha
   }, [onConversationKnown]);
 
   useEffect(() => {
-    if (!conversationId) return;
+    if (!conversationId) {
+      registerChannel(null);
+      return;
+    }
     const supabase = createClient();
     const channel = supabase
       .channel(`conversation:${conversationId}`)
       .on("broadcast", { event: "message_new" }, ({ payload }) => {
         setMessages((prev) => upsertById(prev, payload.message as ChatMessage));
       })
+      .on("broadcast", { event: "typing" }, handleTypingBroadcast)
       .subscribe();
+    registerChannel(channel);
 
     return () => {
       supabase.removeChannel(channel);
+      registerChannel(null);
     };
-  }, [conversationId]);
+  }, [conversationId, handleTypingBroadcast, registerChannel]);
 
   useEffect(() => {
     if (!conversationId) return;
@@ -175,10 +184,14 @@ export function ChatDock({ ownerDisplayName, onClose, onConversationKnown }: Cha
             {error}
           </p>
         )}
+        {ownerTyping && <TypingIndicator label={`${ownerDisplayName} is typing…`} />}
         <div className="flex items-end gap-2">
           <Textarea
             value={body}
-            onChange={(e) => setBody(e.target.value)}
+            onChange={(e) => {
+              setBody(e.target.value);
+              notifyTyping();
+            }}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
