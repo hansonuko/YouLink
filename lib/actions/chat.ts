@@ -2,7 +2,7 @@
 
 import { requireGuestWriteVerified } from "@/lib/actions/turnstile";
 import type { ChatMessage } from "@/lib/data/chat";
-import { getMyConversation } from "@/lib/data/chat";
+import { getConversationMessages, getMyConversation, getOwnerInbox } from "@/lib/data/chat";
 import { getOwnerProfile } from "@/lib/data/profile";
 import { looksLikeSpam } from "@/lib/moderation";
 import { createRateLimiter } from "@/lib/rate-limit";
@@ -58,6 +58,17 @@ async function broadcastMessage(supabase: ServerSupabaseClient, conversationId: 
  */
 export async function fetchMyConversation() {
   return getMyConversation();
+}
+
+/** Same RPC-wrapper reasoning as `fetchMyConversation`, for the dashboard
+ * inbox's conversation list. */
+export async function fetchOwnerInbox() {
+  return getOwnerInbox();
+}
+
+/** Same RPC-wrapper reasoning, for the inbox's open-thread view. */
+export async function fetchConversationMessages(conversationId: string) {
+  return getConversationMessages(conversationId);
 }
 
 /**

@@ -37,7 +37,23 @@ export default async function DashboardLayout({ children }: { children: ReactNod
             Dashboard
           </span>
         </Link>
-        <ThemeToggle />
+        <nav className="flex items-center gap-4">
+          <Link
+            href="/dashboard"
+            className="text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500"
+            style={{ color: "var(--text-secondary)" }}
+          >
+            Works
+          </Link>
+          <Link
+            href="/dashboard/inbox"
+            className="text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500"
+            style={{ color: "var(--text-secondary)" }}
+          >
+            Inbox
+          </Link>
+          <ThemeToggle />
+        </nav>
       </header>
 
       <main className="mx-auto w-full max-w-3xl px-6 py-10 sm:px-10">{children}</main>
