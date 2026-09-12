@@ -1,3 +1,5 @@
+import { cache } from "react";
+
 import { createClient } from "@/lib/supabase/server";
 
 export interface ProfileLink {
@@ -27,8 +29,13 @@ export interface OwnerProfile {
  * row in v1) plus a live follower count. Returns null if the owner hasn't
  * been seeded yet (`npm run db:seed`) rather than throwing, so the page
  * can render an empty state instead of a 500.
+ *
+ * Wrapped in `cache()` so the root layout (deciding whether to mount
+ * `ChatLauncher`) and a page that also needs the owner profile — the feed
+ * page's header, for instance — share one query per request instead of
+ * each paying for it separately.
  */
-export async function getOwnerProfile(): Promise<OwnerProfile | null> {
+export const getOwnerProfile = cache(async (): Promise<OwnerProfile | null> => {
   const supabase = await createClient();
 
   const { data: profile, error } = await supabase
@@ -75,4 +82,4 @@ export async function getOwnerProfile(): Promise<OwnerProfile | null> {
     followedByViewer,
     isViewer: user?.id === profile.id,
   };
-}
+});

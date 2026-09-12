@@ -2,6 +2,7 @@
 
 import { requireGuestWriteVerified } from "@/lib/actions/turnstile";
 import type { ChatMessage } from "@/lib/data/chat";
+import { getMyConversation } from "@/lib/data/chat";
 import { getOwnerProfile } from "@/lib/data/profile";
 import { looksLikeSpam } from "@/lib/moderation";
 import { createRateLimiter } from "@/lib/rate-limit";
@@ -47,6 +48,16 @@ async function broadcastMessage(supabase: ServerSupabaseClient, conversationId: 
   if (status !== "ok") {
     console.error("[chat] realtime broadcast failed:", status);
   }
+}
+
+/**
+ * `lib/data/chat.ts` isn't a Server Action module, so `ChatDock`/
+ * `ChatLauncher` (client components, lazy-loaded per BUILD_PHASES.md
+ * Phase 4) can't call `getMyConversation` directly the way a Server
+ * Component would — this is the thin RPC-callable wrapper they use instead.
+ */
+export async function fetchMyConversation() {
+  return getMyConversation();
 }
 
 /**

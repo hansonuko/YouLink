@@ -82,9 +82,15 @@ export function TurnstileGate() {
 
   return (
     <>
+      {/* `afterInteractive`, not `lazyOnload` — the latter waits for
+          browser idle time with no bound on how long that takes, which
+          could leave a real visitor's first write hitting the
+          "verification pending" wall for no good reason. Still after
+          hydration, so it never competes with anything on the critical
+          path. */}
       <Script
         src="https://challenges.cloudflare.com/turnstile/v0/api.js"
-        strategy="lazyOnload"
+        strategy="afterInteractive"
         onReady={renderWidget}
       />
       <div ref={containerRef} aria-hidden />
