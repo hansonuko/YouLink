@@ -15,6 +15,11 @@ export interface OwnerProfile {
   bio: string | null;
   links: ProfileLink[];
   followerCount: number;
+  /** Does the *current viewer* already follow this profile. */
+  followedByViewer: boolean;
+  /** Is the current viewer the owner themselves — hides FollowButton,
+   * following yourself is meaningless. */
+  isViewer: boolean;
 }
 
 /**
@@ -43,6 +48,21 @@ export async function getOwnerProfile(): Promise<OwnerProfile | null> {
     .select("id", { count: "exact", head: true })
     .eq("followee_profile_id", profile.id);
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  let followedByViewer = false;
+  if (user && user.id !== profile.id) {
+    const { data: existingFollow } = await supabase
+      .from("follows")
+      .select("id")
+      .eq("follower_identity_id", user.id)
+      .eq("followee_profile_id", profile.id)
+      .maybeSingle();
+    followedByViewer = Boolean(existingFollow);
+  }
+
   return {
     id: profile.id,
     username: profile.username,
@@ -52,5 +72,7 @@ export async function getOwnerProfile(): Promise<OwnerProfile | null> {
     bio: profile.bio,
     links: Array.isArray(profile.links) ? (profile.links as ProfileLink[]) : [],
     followerCount: count ?? 0,
+    followedByViewer,
+    isViewer: user?.id === profile.id,
   };
 }

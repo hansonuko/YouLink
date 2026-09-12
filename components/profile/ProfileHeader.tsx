@@ -1,4 +1,5 @@
 import { Avatar } from "@/components/ui/avatar";
+import { FollowSection } from "@/components/profile/FollowSection";
 import { GlowBorder } from "@/components/motion/GlowBorder";
 import { Reveal } from "@/components/motion/Reveal";
 import type { OwnerProfile } from "@/lib/data/profile";
@@ -70,20 +71,12 @@ export function ProfileHeader({ profile }: { profile: OwnerProfile }) {
             )}
           </div>
 
-          <div className="text-left sm:text-right">
-            <p
-              className="font-[family-name:var(--font-display)] text-lg font-bold"
-              style={{ color: "var(--text-primary)" }}
-            >
-              {profile.followerCount}
-            </p>
-            <p
-              className="text-xs uppercase tracking-wide"
-              style={{ color: "var(--text-tertiary)" }}
-            >
-              {profile.followerCount === 1 ? "Follower" : "Followers"}
-            </p>
-          </div>
+          <FollowSection
+            profileId={profile.id}
+            initialFollowing={profile.followedByViewer}
+            initialCount={profile.followerCount}
+            showButton={!profile.isViewer}
+          />
         </GlowBorder>
       </div>
     </Reveal>
