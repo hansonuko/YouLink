@@ -1,5 +1,6 @@
 "use server";
 
+import { requireGuestWriteVerified } from "@/lib/actions/turnstile";
 import { createRateLimiter } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 
@@ -53,6 +54,11 @@ export async function setReaction(workId: string, reaction: ReactionType): Promi
   const { success } = await reactionRateLimiter.limit(`user:${user.id}`);
   if (!success) {
     return { reaction: null, likeCount: 0, error: "Too many reactions — slow down a moment." };
+  }
+
+  const verified = await requireGuestWriteVerified(supabase, user.id);
+  if (!verified.ok) {
+    return { reaction: null, likeCount: 0, error: verified.error };
   }
 
   const { data: existing } = await supabase

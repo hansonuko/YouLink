@@ -1,5 +1,6 @@
 "use server";
 
+import { requireGuestWriteVerified } from "@/lib/actions/turnstile";
 import { createRateLimiter } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 
@@ -49,6 +50,11 @@ export async function logShare(workId: string, channel: ShareChannel): Promise<L
   const { success } = await shareRateLimiter.limit(`user:${user.id}`);
   if (!success) {
     return { shareCount: 0, error: "Slow down a moment." };
+  }
+
+  const verified = await requireGuestWriteVerified(supabase, user.id);
+  if (!verified.ok) {
+    return { shareCount: 0, error: verified.error };
   }
 
   const { error } = await supabase
