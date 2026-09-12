@@ -70,7 +70,7 @@ export default async function WorkPage({ params }: WorkPageParams) {
           style={{ color: "var(--text-tertiary)" }}
         >
           {work.publishedAt && <span>{formatRelativeTime(work.publishedAt)}</span>}
-          <LikeButton workId={work.id} initialLiked={work.liked} initialCount={work.likeCount} />
+          <LikeButton workId={work.id} initialReaction={work.reaction} initialCount={work.likeCount} />
           <ShareSheet workId={work.id} slug={work.slug} title={work.title} initialCount={work.shareCount} />
         </div>
 

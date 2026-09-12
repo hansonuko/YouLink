@@ -79,7 +79,7 @@ export function WorkCard({ work, view }: WorkCardProps) {
       )}
       style={{ color: "var(--text-tertiary)" }}
     >
-      <LikeButton workId={work.id} initialLiked={work.liked} initialCount={work.likeCount} />
+      <LikeButton workId={work.id} initialReaction={work.reaction} initialCount={work.likeCount} />
       <ShareSheet workId={work.id} slug={work.slug} title={work.title} initialCount={work.shareCount} />
       <span className="inline-flex items-center gap-1.5">
         <MessageCircle className="size-3.5" aria-hidden />

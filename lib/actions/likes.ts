@@ -3,62 +3,89 @@
 import { createRateLimiter } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 
-// BLUEPRINT.md §5 Like — "rate-limited to 30/min per identity."
-const likeRateLimiter = createRateLimiter("like", 30, "1 m");
+export type ReactionType = "love" | "like" | "clap";
 
-export interface ToggleLikeResult {
-  liked: boolean;
+const REACTION_TYPES: readonly ReactionType[] = ["love", "like", "clap"];
+
+// BLUEPRINT.md §5 Like — "rate-limited to 30/min per identity." Unchanged
+// by the reactions upgrade: switching or clearing a reaction is the same
+// cost as the old like/unlike toggle.
+const reactionRateLimiter = createRateLimiter("like", 30, "1 m");
+
+export interface SetReactionResult {
+  /** null means "no reaction" — the identity had one and just cleared it. */
+  reaction: ReactionType | null;
   likeCount: number;
   error?: string;
 }
 
 /**
- * Insert/delete the current identity's own like row — RLS ("identity can
- * like"/"identity can unlike" from the Phase 1 migration) is what actually
- * enforces `auth.uid() = identity_id`; this just decides which direction
- * to go. The `on_like_change` trigger keeps `works.like_count` in sync, so
- * this function never touches that column directly. After a successful
- * toggle, broadcasts the new count on a per-work Realtime channel so other
- * open tabs see it tick live (BLUEPRINT.md §5) — count isn't sensitive, so
- * a plain public channel is fine, no Realtime Authorization needed.
+ * Set, switch, or clear the current identity's own reaction on a work.
+ * Still one row per (identity_id, work_id) in `likes` — RLS ("identity can
+ * like"/"identity can change their own reaction"/"identity can unlike")
+ * enforces `auth.uid() = identity_id` for every branch below:
+ *
+ * - no existing row + a reaction is requested → insert
+ * - existing row, same reaction requested again → delete (un-react)
+ * - existing row, a different reaction requested → update in place
+ *
+ * `on_like_change` only fires on insert/delete, so switching between
+ * reactions (the update branch) never touches `works.like_count` — total
+ * engagement doesn't change just because someone changed their mind about
+ * *which* reaction. Broadcasts the new total on the same `work:{id}`
+ * channel used elsewhere; per-viewer reaction choice isn't broadcast since
+ * it's meaningless to anyone but that viewer.
  */
-export async function toggleLike(workId: string): Promise<ToggleLikeResult> {
+export async function setReaction(workId: string, reaction: ReactionType): Promise<SetReactionResult> {
+  if (!REACTION_TYPES.includes(reaction)) {
+    return { reaction: null, likeCount: 0, error: "Invalid reaction." };
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return { liked: false, likeCount: 0, error: "Not signed in." };
+    return { reaction: null, likeCount: 0, error: "Not signed in." };
   }
 
-  const { success } = await likeRateLimiter.limit(`user:${user.id}`);
+  const { success } = await reactionRateLimiter.limit(`user:${user.id}`);
   if (!success) {
-    return { liked: false, likeCount: 0, error: "Too many likes — slow down a moment." };
+    return { reaction: null, likeCount: 0, error: "Too many reactions — slow down a moment." };
   }
 
   const { data: existing } = await supabase
     .from("likes")
-    .select("id")
+    .select("id, reaction")
     .eq("identity_id", user.id)
     .eq("work_id", workId)
     .maybeSingle();
 
-  let liked: boolean;
-  if (existing) {
+  let nextReaction: ReactionType | null;
+  if (!existing) {
+    const { error } = await supabase
+      .from("likes")
+      .insert({ identity_id: user.id, work_id: workId, reaction });
+    if (error) {
+      console.error("[likes] react failed:", error.message);
+      return { reaction: null, likeCount: 0, error: "Couldn't react. Try again." };
+    }
+    nextReaction = reaction;
+  } else if (existing.reaction === reaction) {
     const { error } = await supabase.from("likes").delete().eq("id", existing.id);
     if (error) {
-      console.error("[likes] unlike failed:", error.message);
-      return { liked: true, likeCount: 0, error: "Couldn't unlike. Try again." };
+      console.error("[likes] un-react failed:", error.message);
+      return { reaction: existing.reaction as ReactionType, likeCount: 0, error: "Couldn't remove reaction. Try again." };
     }
-    liked = false;
+    nextReaction = null;
   } else {
-    const { error } = await supabase.from("likes").insert({ identity_id: user.id, work_id: workId });
+    const { error } = await supabase.from("likes").update({ reaction }).eq("id", existing.id);
     if (error) {
-      console.error("[likes] like failed:", error.message);
-      return { liked: false, likeCount: 0, error: "Couldn't like. Try again." };
+      console.error("[likes] switch reaction failed:", error.message);
+      return { reaction: existing.reaction as ReactionType, likeCount: 0, error: "Couldn't switch reaction. Try again." };
     }
-    liked = true;
+    nextReaction = reaction;
   }
 
   const { data: work } = await supabase
@@ -77,5 +104,5 @@ export async function toggleLike(workId: string): Promise<ToggleLikeResult> {
     console.error("[likes] realtime broadcast failed:", broadcastStatus);
   }
 
-  return { liked, likeCount };
+  return { reaction: nextReaction, likeCount };
 }

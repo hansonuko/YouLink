@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import type { ReactionType } from "@/lib/actions/likes";
 import { createClient } from "@/lib/supabase/server";
 
 export interface WorkMedia {
@@ -20,34 +21,35 @@ export interface WorkSummary {
   shareCount: number;
   commentCount: number;
   publishedAt: string | null;
-  /** Has the *current viewer* liked this work — batched, not N+1. */
-  liked: boolean;
+  /** The *current viewer's* own reaction on this work, or null if they
+   * haven't reacted — batched, not N+1. */
+  reaction: ReactionType | null;
 }
 
 /** One query for a whole page of works instead of one per card. */
-async function getLikedWorkIdSet(
+async function getReactionsMap(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the generated Database type isn't wired up yet (no `supabase gen types` on this platform, see BUILD_PHASES.md)
   supabase: SupabaseClient<any>,
   workIds: string[],
-): Promise<Set<string>> {
-  if (workIds.length === 0) return new Set();
+): Promise<Map<string, ReactionType>> {
+  if (workIds.length === 0) return new Map();
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return new Set();
+  if (!user) return new Map();
 
   const { data, error } = await supabase
     .from("likes")
-    .select("work_id")
+    .select("work_id, reaction")
     .eq("identity_id", user.id)
     .in("work_id", workIds);
 
   if (error) {
-    console.error("[works] failed to load liked work ids:", error.message);
-    return new Set();
+    console.error("[works] failed to load reactions:", error.message);
+    return new Map();
   }
-  return new Set(data.map((row: { work_id: string }) => row.work_id));
+  return new Map(data.map((row: { work_id: string; reaction: ReactionType }) => [row.work_id, row.reaction]));
 }
 
 export interface WorksPage {
@@ -79,7 +81,7 @@ interface WorkDetailRow {
   published_at: string | null;
 }
 
-function mapWorkDetailRow(data: WorkDetailRow, liked: boolean): WorkDetail {
+function mapWorkDetailRow(data: WorkDetailRow, reaction: ReactionType | null): WorkDetail {
   return {
     id: data.id,
     title: data.title,
@@ -93,7 +95,7 @@ function mapWorkDetailRow(data: WorkDetailRow, liked: boolean): WorkDetail {
     shareCount: data.share_count,
     commentCount: data.comment_count,
     publishedAt: data.published_at,
-    liked,
+    reaction,
   };
 }
 
@@ -156,7 +158,7 @@ export async function getPublishedWorksPage(
   const hasMore = data.length > limit;
   const page = hasMore ? data.slice(0, limit) : data;
 
-  const likedIds = await getLikedWorkIdSet(supabase, page.map((w) => w.id));
+  const reactions = await getReactionsMap(supabase, page.map((w) => w.id));
 
   const works: WorkSummary[] = page.map((w) => ({
     id: w.id,
@@ -168,7 +170,7 @@ export async function getPublishedWorksPage(
     shareCount: w.share_count,
     commentCount: w.comment_count,
     publishedAt: w.published_at,
-    liked: likedIds.has(w.id),
+    reaction: reactions.get(w.id) ?? null,
   }));
 
   const last = page.at(-1);
@@ -199,8 +201,8 @@ export async function getWorkBySlug(slug: string): Promise<WorkDetail | null> {
   }
   if (!data) return null;
 
-  const likedIds = await getLikedWorkIdSet(supabase, [data.id]);
-  return mapWorkDetailRow(data, likedIds.has(data.id));
+  const reactions = await getReactionsMap(supabase, [data.id]);
+  return mapWorkDetailRow(data, reactions.get(data.id) ?? null);
 }
 
 /** For the dashboard edit page — editing keys off id, not slug (slug can change). */
@@ -219,8 +221,8 @@ export async function getWorkById(id: string): Promise<WorkDetail | null> {
   }
   if (!data) return null;
 
-  const likedIds = await getLikedWorkIdSet(supabase, [data.id]);
-  return mapWorkDetailRow(data, likedIds.has(data.id));
+  const reactions = await getReactionsMap(supabase, [data.id]);
+  return mapWorkDetailRow(data, reactions.get(data.id) ?? null);
 }
 
 export interface OwnerWorkListItem {
