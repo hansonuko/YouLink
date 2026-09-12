@@ -1,9 +1,9 @@
-import { Share2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
 import { GlowBorder } from "@/components/motion/GlowBorder";
 import { LikeButton } from "@/components/works/LikeButton";
+import { ShareSheet } from "@/components/works/ShareSheet";
 import type { WorkSummary } from "@/lib/data/works";
 import { cn, formatRelativeTime } from "@/lib/utils";
 
@@ -13,10 +13,9 @@ interface WorkCardProps {
 }
 
 /** `WorkCard` from DESIGN_SYSTEM.md §6. The cover/title/summary are the
- * link to the work; `LikeButton` sits outside it as its own control —
- * nesting a button inside an anchor is both invalid HTML and would fire
- * the link navigation on every like tap. Share is still a static count
- * here; `ShareSheet` is the next Phase 3 item. */
+ * link to the work; `LikeButton`/`ShareSheet` sit outside it as their own
+ * controls — nesting an interactive element inside an anchor is both
+ * invalid HTML and would fire the link navigation on every tap. */
 export function WorkCard({ work, view }: WorkCardProps) {
   const cover = work.media[0];
   const isList = view === "list";
@@ -80,10 +79,7 @@ export function WorkCard({ work, view }: WorkCardProps) {
       style={{ color: "var(--text-tertiary)" }}
     >
       <LikeButton workId={work.id} initialLiked={work.liked} initialCount={work.likeCount} />
-      <span className="flex items-center gap-1">
-        <Share2 className="size-3.5" aria-hidden />
-        {work.shareCount}
-      </span>
+      <ShareSheet workId={work.id} slug={work.slug} title={work.title} initialCount={work.shareCount} />
       {work.publishedAt && <span>{formatRelativeTime(work.publishedAt)}</span>}
     </div>
   );
